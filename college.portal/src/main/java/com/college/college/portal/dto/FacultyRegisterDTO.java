@@ -1,9 +1,6 @@
 package com.college.college.portal.dto;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.*;
 
 @Getter@Setter@NoArgsConstructor@AllArgsConstructor@Builder
@@ -37,4 +34,10 @@ public class FacultyRegisterDTO {
             message = "Designation must be: Professor, Associate Prof, or Assistant Prof"
     )
     private String designation;
+
+    @Size(max = 100)
+    private String qualification;
+
+    @Min(0) @Max(60)
+    private Integer experienceYears;
 }

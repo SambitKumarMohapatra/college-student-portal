@@ -20,7 +20,7 @@ public class HealthController {
         return ResponseEntity.ok(Map.of(
                 "status", "UP",
                 "app", "Landmine Soft LMS",
-                "version", "1.0.0 - Week 1"
+                "version", "1.0.0 - Week 2"
         ));
     }
 }

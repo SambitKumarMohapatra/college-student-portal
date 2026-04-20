@@ -5,6 +5,7 @@ import com.college.college.portal.entity.Admin;
 import com.college.college.portal.entity.Faculty;
 import com.college.college.portal.entity.Role;
 import com.college.college.portal.entity.Student;
+import com.college.college.portal.exception.InvalidCredentialsException;
 import com.college.college.portal.exception.UserAlreadyExistsException;
 import com.college.college.portal.repository.AdminRepository;
 import com.college.college.portal.repository.FacultyRepository;
@@ -18,6 +19,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -34,32 +37,58 @@ public class AuthService {
         if(studentRepository.existsByEmail(dto.getEmail())){
             throw new UserAlreadyExistsException("Email already registered:"+dto.getEmail());
         }
-        Student student=Student.builder()
+        String rollNumber = generateRollNumber(dto.getBranch(), dto.getEnrollmentYear());
+        Student student = Student.builder()
                 .name(dto.getName())
                 .email(dto.getEmail())
                 .phone(dto.getPhone())
                 .passwordHash(passwordEncoder.encode(dto.getPassword()))
                 .branch(dto.getBranch())
                 .enrollmentYear(dto.getEnrollmentYear())
+                .rollNumber(rollNumber)
                 .semester(1)
-                .role(Role.STUDENT)
                 .build();
-        student=studentRepository.save(student);
+
+        Student saved = studentRepository.save(student);
+
         return ApiResponseDTO.builder()
-                .id(student.getId())
-                .name(student.getName())
-                .email(student.getEmail())
+                .id(saved.getId())
+                .name(saved.getName())
+                .email(saved.getEmail())
                 .role("STUDENT")
                 .message("Registration successful. Please login.")
                 .build();
 
     }
+
+    public JwtResponseDTO loginStudent(LoginDTO dto) {
+        Student student = studentRepository.findByEmail(dto.getEmail())
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(dto.getPassword(), student.getPasswordHash())) {
+            throw new InvalidCredentialsException("Invalid email or password");
+        }
+
+        String token = jwtUtils.generateToken(student.getEmail(), student.getId(), "STUDENT");
+
+        return JwtResponseDTO.builder()
+                .token(token)
+                .type("Bearer")
+                .userId(student.getId())
+                .email(student.getEmail())
+                .name(student.getName())
+                .role("STUDENT")
+                .build();
+    }
+
     //FACULTY REGISTRATION
+
     @Transactional
     public ApiResponseDTO registerFaculty(FacultyRegisterDTO dto) {
         if (facultyRepository.existsByEmail(dto.getEmail())) {
             throw new UserAlreadyExistsException("Email already registered: " + dto.getEmail());
         }
+
         Faculty faculty = Faculty.builder()
                 .name(dto.getName())
                 .email(dto.getEmail())
@@ -67,15 +96,38 @@ public class AuthService {
                 .passwordHash(passwordEncoder.encode(dto.getPassword()))
                 .department(dto.getDepartment())
                 .designation(dto.getDesignation())
-                .role(Role.FACULTY)
+                .qualification(dto.getQualification())
+                .experienceYears(dto.getExperienceYears())
                 .build();
-        faculty = facultyRepository.save(faculty);
+
+        Faculty saved = facultyRepository.save(faculty);
+
         return ApiResponseDTO.builder()
-                .id(faculty.getId())
-                .name(faculty.getName())
-                .email(faculty.getEmail())
+                .id(saved.getId())
+                .name(saved.getName())
+                .email(saved.getEmail())
                 .role("FACULTY")
                 .message("Registration successful. Please login.")
+                .build();
+    }
+
+    public JwtResponseDTO loginFaculty(LoginDTO dto) {
+        Faculty faculty = facultyRepository.findByEmail(dto.getEmail())
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(dto.getPassword(), faculty.getPasswordHash())) {
+            throw new InvalidCredentialsException("Invalid email or password");
+        }
+
+        String token = jwtUtils.generateToken(faculty.getEmail(), faculty.getId(), "FACULTY");
+
+        return JwtResponseDTO.builder()
+                .token(token)
+                .type("Bearer")
+                .userId(faculty.getId())
+                .email(faculty.getEmail())
+                .name(faculty.getName())
+                .role("FACULTY")
                 .build();
     }
 
@@ -104,6 +156,25 @@ public class AuthService {
     }
 
     //LOGIN
+
+    public JwtResponseDTO loginAdmin(LoginDTO dto) {
+        Admin admin = adminRepository.findByEmail(dto.getEmail())
+                .orElseThrow(() -> new InvalidCredentialsException("Invalid email or password"));
+
+        if (!passwordEncoder.matches(dto.getPassword(), admin.getPasswordHash())) {
+            throw new InvalidCredentialsException("Invalid email or password");
+        }
+
+        String token = jwtUtils.generateToken(admin.getEmail(), admin.getId(), admin.getRole());
+
+        return JwtResponseDTO.builder()
+                .token(token)
+                .type("Bearer")
+                .userId(admin.getId())
+                .email(admin.getEmail())
+                .name(admin.getName())
+                .role(admin.getRole())                .build();
+    }
 
     public JwtResponseDTO login(LoginDTO dto) {
         Authentication auth = authenticationManager.authenticate(
@@ -140,5 +211,13 @@ public class AuthService {
                     .build();
         }
         throw new UsernameNotFoundException("User not found");
+    }
+
+    // ============ HELPERS ============
+
+    private String generateRollNumber(String branch, int year) {
+        String shortYear = String.valueOf(year).substring(2);
+        String unique = UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        return shortYear + branch + unique;
     }
 }
