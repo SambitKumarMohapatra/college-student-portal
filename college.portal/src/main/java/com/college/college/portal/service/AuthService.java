@@ -1,10 +1,7 @@
 package com.college.college.portal.service;
 
 import com.college.college.portal.dto.*;
-import com.college.college.portal.entity.Admin;
-import com.college.college.portal.entity.Faculty;
-import com.college.college.portal.entity.Role;
-import com.college.college.portal.entity.Student;
+import com.college.college.portal.entity.*;
 import com.college.college.portal.exception.InvalidCredentialsException;
 import com.college.college.portal.exception.UserAlreadyExistsException;
 import com.college.college.portal.repository.AdminRepository;
@@ -69,7 +66,11 @@ public class AuthService {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        String token = jwtUtils.generateToken(student.getEmail(), student.getId(), "STUDENT");
+        Authentication auth=authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(dto.getEmail(),dto.getPassword())
+        );
+
+        String token = jwtUtils.generateToken(auth);
 
         return JwtResponseDTO.builder()
                 .token(token)
@@ -118,8 +119,11 @@ public class AuthService {
         if (!passwordEncoder.matches(dto.getPassword(), faculty.getPasswordHash())) {
             throw new InvalidCredentialsException("Invalid email or password");
         }
+        Authentication auth=authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(dto.getEmail(),dto.getPassword())
+        );
 
-        String token = jwtUtils.generateToken(faculty.getEmail(), faculty.getId(), "FACULTY");
+        String token = jwtUtils.generateToken(auth);
 
         return JwtResponseDTO.builder()
                 .token(token)
@@ -165,7 +169,11 @@ public class AuthService {
             throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        String token = jwtUtils.generateToken(admin.getEmail(), admin.getId(), admin.getRole());
+        Authentication auth=authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(dto.getEmail(),dto.getPassword())
+        );
+
+        String token = jwtUtils.generateToken(auth);
 
         return JwtResponseDTO.builder()
                 .token(token)
@@ -173,7 +181,7 @@ public class AuthService {
                 .userId(admin.getId())
                 .email(admin.getEmail())
                 .name(admin.getName())
-                .role(admin.getRole())                .build();
+                .role("ADMIN").build();
     }
 
     public JwtResponseDTO login(LoginDTO dto) {
@@ -211,6 +219,28 @@ public class AuthService {
                     .build();
         }
         throw new UsernameNotFoundException("User not found");
+    }
+
+    //Refresh Token
+    @Transactional
+    public TokenRefreshResponseDTO refreshToken(TokenRefreshRequestDTO dto) {
+        RefreshToken refreshToken = refreshTokenService.findByToken(dto.getRefreshToken());
+        refreshTokenService.verifyExpiration(refreshToken);
+
+        String newAccessToken = jwtUtils.generateTokenFromEmail(refreshToken.getUserEmail());
+        return new TokenRefreshResponseDTO(newAccessToken, "Bearer", refreshToken.getToken());
+    }
+    //Logout
+
+    @Transactional
+    public void logout(String accessToken, String email) {
+        // Blacklist the current access token
+        TokenBlacklistService.blacklistToken(
+                accessToken,
+                jwtUtils.getExpiryFromToken(accessToken)
+        );
+        // Delete refresh token for this user
+        refreshTokenService.deleteByEmail(email);
     }
 
     // ============ HELPERS ============

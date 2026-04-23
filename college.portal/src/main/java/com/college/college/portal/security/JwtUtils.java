@@ -10,6 +10,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
 
 @Component
@@ -22,9 +24,11 @@ public class JwtUtils {
     private int jwtExpirationMs;
 
     private SecretKey key() {
-        return Keys.hmacShaKeyFor(Decoders.BASE64.decode(
-                java.util.Base64.getEncoder().encodeToString(jwtSecret.getBytes())
-        ));
+        // Pad or trim secret to ensure minimum 32 bytes for HS256
+        byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        byte[] padded = new byte[Math.max(32, keyBytes.length)];
+        System.arraycopy(keyBytes, 0, padded, 0, Math.min(keyBytes.length, padded.length));
+        return Keys.hmacShaKeyFor(padded);
     }
 
     public String generateToken(Authentication authentication) {
@@ -48,6 +52,17 @@ public class JwtUtils {
                 .parseSignedClaims(token)
                 .getPayload()
                 .getSubject();
+    }
+
+    // Extract expiry as Instant (used for blacklisting on logout)
+    public Instant getExpiryFromToken(String token) {
+        Date expiry = Jwts.parser()
+                .verifyWith(key())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getExpiration();
+        return expiry.toInstant();
     }
 
     public boolean validateToken(String token) {

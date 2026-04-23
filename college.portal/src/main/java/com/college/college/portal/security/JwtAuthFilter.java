@@ -1,5 +1,6 @@
 package com.college.college.portal.security;
 
+import com.college.college.portal.service.TokenBlacklistService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,11 +23,18 @@ import java.io.IOException;
 public class JwtAuthFilter extends OncePerRequestFilter {
     private final JwtUtils jwtUtils;
     private final CustomUserDetailsService userDetailsService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String jwt=parseJwt(request);
         if (jwt != null && jwtUtils.validateToken(jwt)) {
+            // Reject blacklisted tokens (logged-out users)
+            if (tokenBlacklistService.isBlacklisted(jwt)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.getWriter().write("{\"error\":\"Token has been invalidated. Please login again.\"}");
+                return;
+            }
             String email = jwtUtils.getEmailFromToken(jwt);
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
