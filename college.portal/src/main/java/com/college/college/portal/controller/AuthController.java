@@ -2,6 +2,8 @@ package com.college.college.portal.controller;
 
 import com.college.college.portal.dto.*;
 import com.college.college.portal.service.AuthService;
+import com.college.college.portal.service.PasswordResetService;
+import com.college.college.portal.service.StudentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -27,6 +29,8 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Authentication",description = "Registration, Login, Refresh Token, and Logout APIs")
 public class AuthController {
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
+    private final StudentService studentService;
     //Student Registration
     @PostMapping("/student/register")
     @Operation( summary = "Register a new Student",
@@ -193,6 +197,53 @@ public class AuthController {
             return header.substring(7);
         }
         return null;
+    }
+
+    // ─── Forgot Password ──────────────────────────────────────
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Send password reset token to email",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(examples = @ExampleObject(value = """
+            { "email": "rahul@college.edu" }
+        """))))
+    public ResponseEntity<ApiResponseDTO> forgotPassword(
+            @Valid @RequestBody ForgotPasswordDTO dto) {
+        passwordResetService.processForgotPassword(dto.getEmail());
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .message("Reset link sent to email.")
+                .build());
+    }
+
+    // ─── Reset Password ───────────────────────────────────────
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reset password using token from email",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(examples = @ExampleObject(value = """
+            { "token": "uuid-token-here", "newPassword": "NewPass@123" }
+        """))))
+    public ResponseEntity<ApiResponseDTO> resetPassword(
+            @Valid @RequestBody ResetPasswordDTO dto) {
+        passwordResetService.resetPassword(dto.getToken(), dto.getNewPassword());
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .message("Password reset successfully. Please login.")
+                .build());
+    }
+
+    // ─── Change Password ──────────────────────────────────────
+    @PostMapping("/change-password")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(summary = "Change password (JWT protected)",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    content = @Content(examples = @ExampleObject(value = """
+            { "oldPassword": "SecurePass@123", "newPassword": "NewPass@123" }
+        """))))
+    public ResponseEntity<ApiResponseDTO> changePassword(
+            @Valid @RequestBody ChangePasswordDTO dto,
+            Authentication authentication) {
+        studentService.changePassword(authentication.getName(), dto);
+        return ResponseEntity.ok(ApiResponseDTO.builder()
+                .message("Password changed successfully.")
+                .build());
     }
 }
 
