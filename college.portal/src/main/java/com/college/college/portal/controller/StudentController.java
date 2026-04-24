@@ -37,6 +37,17 @@ public class StudentController {
         return ResponseEntity.ok(studentService.getStudentById(id));
     }
 
+    //Placeholder for future enrollment API
+    @GetMapping("/enrollments")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Get student enrollments (STUDENT only)")
+    public ResponseEntity<?> getEnrollments(Authentication auth) {
+        return ResponseEntity.ok(java.util.Map.of(
+                "message", "Enrollment API coming in next module",
+                "student", auth.getName()
+        ));
+    }
+
     // ── Update Profile ────────────────────────────────────────
     @PutMapping("/profile")
     @PreAuthorize("hasRole('STUDENT')")

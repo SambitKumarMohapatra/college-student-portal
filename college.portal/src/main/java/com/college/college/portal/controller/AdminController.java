@@ -90,4 +90,22 @@ public class AdminController {
         stats.put("totalAdmins", (long) adminService.getAllAdmins().size());
         return ResponseEntity.ok(stats);
     }
+
+    //Reports endpoint (ADMIN only)
+    @GetMapping("/reports")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Admin reports (ADMIN only)")
+    public ResponseEntity<Map<String, Object>> getReports() {
+        Map<String, Object> report = new java.util.LinkedHashMap<>();
+        report.put("totalStudents", studentService.getAllStudents().size());
+        report.put("totalFaculty",  facultyService.getAllFaculty().size());
+        report.put("studentsByBranch", Map.of(
+                "CSE", studentService.getStudentsByBranch("CSE").size(),
+                "ECE", studentService.getStudentsByBranch("ECE").size(),
+                "ME",  studentService.getStudentsByBranch("ME").size(),
+                "CE",  studentService.getStudentsByBranch("CE").size(),
+                "EE",  studentService.getStudentsByBranch("EE").size()
+        ));
+        return ResponseEntity.ok(report);
+    }
 }

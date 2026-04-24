@@ -58,4 +58,15 @@ public class FacultyController {
     public ResponseEntity<List<StudentProfileDTO>> getStudentsBySemester(@PathVariable Integer semester) {
         return ResponseEntity.ok(studentService.getStudentsBySemester(semester));
     }
+
+    //Placeholder for reports
+    @GetMapping("/reports")
+    @PreAuthorize("hasRole('FACULTY')")
+    @Operation(summary = "Faculty reports (FACULTY only)")
+    public ResponseEntity<?> getReports(Authentication auth) {
+        return ResponseEntity.ok(java.util.Map.of(
+                "message", "Reports API coming in next module",
+                "faculty", auth.getName()
+        ));
+    }
 }
