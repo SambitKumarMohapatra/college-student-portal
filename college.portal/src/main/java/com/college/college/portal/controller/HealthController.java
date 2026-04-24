@@ -23,4 +23,14 @@ public class HealthController {
                 "version", "1.0.0 - Week 2"
         ));
     }
+
+    @GetMapping("/")
+    public ResponseEntity<Map<String, String>> root() {
+        return ResponseEntity.ok(Map.of(
+                "app",     "Landmine Soft LMS Portal",
+                "status",  "UP",
+                "swagger", "/swagger-ui.html",
+                "health",  "/api/health"
+        ));
+    }
 }
