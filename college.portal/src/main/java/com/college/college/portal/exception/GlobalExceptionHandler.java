@@ -86,4 +86,11 @@ public class GlobalExceptionHandler {
         body.put("message", message);
         return new ResponseEntity<>(body, status);
     }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<?> handle(Exception ex) {
+        ex.printStackTrace(); // prints in Render logs
+        return ResponseEntity.status(500)
+                .body(ex.getMessage()); // TEMP: show real error
+    }
 }
