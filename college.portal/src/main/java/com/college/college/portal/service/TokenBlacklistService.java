@@ -38,7 +38,12 @@ public class TokenBlacklistService {
     @Scheduled(fixedRate = 3600000)
     @Transactional
     public void cleanupExpiredTokens() {
-        tokenBlacklistRepository.deleteExpiredTokens(Instant.now());
-        log.info("Cleaned up expired blacklisted tokens");
+        try {
+            tokenBlacklistRepository.deleteExpiredTokens(Instant.now());
+            log.info("Cleaned up expired blacklisted tokens");
+        } catch (Exception e) {
+            log.error("Cleanup task failed: {}", e.getMessage());
+            // silently fail — don't crash the app
+        }
     }
 }
