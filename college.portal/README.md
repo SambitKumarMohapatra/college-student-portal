@@ -4,7 +4,7 @@ A complete college management backend built with Spring Boot 3.2,
 PostgreSQL, JWT authentication, and role-based access control.
 
 ## Live Demo
-- **API Base URL:** https://lms-college-portal.onrender.com
+- **API Base URL:** http://college-student-portal-9mbk.onrender.com
 - **Swagger UI:** https://lms-college-portal.onrender.com/swagger-ui.html
 - **Health Check:** https://lms-college-portal.onrender.com/api/health
 
