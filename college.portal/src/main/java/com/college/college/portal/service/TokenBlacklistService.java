@@ -15,23 +15,31 @@ import java.time.Instant;
 @Slf4j
 public class TokenBlacklistService {
 
-    private static final TokenBlacklistRepository tokenBlacklistRepository = null;
+    private final TokenBlacklistRepository tokenBlacklistRepository;
 
     @Transactional
-    public static void blacklistToken(String token, Instant expiresAt) {
-        // Avoid duplicates
-        if (!tokenBlacklistRepository.existsByToken(token)) {
-            tokenBlacklistRepository.save(
-                    TokenBlacklist.builder()
-                            .token(token)
-                            .expiresAt(expiresAt)
-                            .build()
-            );
+    public void blacklistToken(String token, Instant expiresAt) {
+        try {
+            if (!tokenBlacklistRepository.existsByToken(token)) {
+                tokenBlacklistRepository.save(
+                        TokenBlacklist.builder()
+                                .token(token)
+                                .expiresAt(expiresAt)
+                                .build()
+                );
+            }
+        } catch (Exception e) {
+            log.error("Error blacklisting token: {}", e.getMessage(), e);
         }
     }
 
     public boolean isBlacklisted(String token) {
-        return tokenBlacklistRepository.existsByToken(token);
+        try {
+            return tokenBlacklistRepository.existsByToken(token);
+        } catch (Exception e) {
+            log.error("Error checking blacklist: {}", e.getMessage(), e);
+            return false;
+        }
     }
 
     // Auto-cleanup expired blacklisted tokens every hour
@@ -43,7 +51,7 @@ public class TokenBlacklistService {
             log.info("Cleaned up expired blacklisted tokens");
         } catch (Exception e) {
             log.error("Cleanup task failed: {}", e.getMessage());
-            // silently fail — don't crash the app
+
         }
     }
 }

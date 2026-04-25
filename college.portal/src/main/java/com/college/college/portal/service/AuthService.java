@@ -10,6 +10,7 @@ import com.college.college.portal.repository.StudentRepository;
 import com.college.college.portal.security.JwtUtils;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -28,6 +29,8 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService;
     //STUDENT REGISTRATION
     @Transactional
     public ApiResponseDTO registerStudent(StudentRegisterDTO dto){
@@ -235,7 +238,7 @@ public class AuthService {
     @Transactional
     public void logout(String accessToken, String email) {
         // Blacklist the current access token
-        TokenBlacklistService.blacklistToken(
+        tokenBlacklistService.blacklistToken(
                 accessToken,
                 jwtUtils.getExpiryFromToken(accessToken)
         );
