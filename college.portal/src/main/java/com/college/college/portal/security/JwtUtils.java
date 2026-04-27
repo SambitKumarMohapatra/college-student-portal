@@ -24,11 +24,14 @@ public class JwtUtils {
     private int jwtExpirationMs;
 
     private SecretKey key() {
-        // Pad or trim secret to ensure minimum 32 bytes for HS256
         byte[] keyBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
-        byte[] padded = new byte[Math.max(32, keyBytes.length)];
-        System.arraycopy(keyBytes, 0, padded, 0, Math.min(keyBytes.length, padded.length));
-        return Keys.hmacShaKeyFor(padded);
+        // Ensure minimum 32 bytes for HS256
+        if (keyBytes.length < 32) {
+            byte[] padded = new byte[32];
+            System.arraycopy(keyBytes, 0, padded, 0, keyBytes.length);
+            return Keys.hmacShaKeyFor(padded);
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateToken(Authentication authentication) {
